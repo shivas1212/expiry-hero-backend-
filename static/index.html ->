@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- PLAYABLE_TOUCH_PATCH_V1 --><script>
+(function() {
+  if (window.__playableTouchPatchInstalled) return;
+  window.__playableTouchPatchInstalled = true;
+  var origAdd = EventTarget.prototype.addEventListener;
+  var blockedTypes = { touchstart: 1, touchmove: 1, wheel: 1 };
+  EventTarget.prototype.addEventListener = function(type, listener, options) {
+    if (blockedTypes[type]) {
+      if (options === undefined || options === null) {
+        options = { passive: true };
+      } else if (typeof options === 'boolean') {
+        options = { capture: options, passive: true };
+      } else {
+        options = Object.assign({}, options, { passive: true });
+      }
+    }
+    return origAdd.call(this, type, listener, options);
+  };
+})();
+</script><script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Expiry Hero - ANT Trading</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0a0e13; color:white;}
+.card{background:#151a21; border:1px solid #232a35; border-radius:16px;}
+.input{background:#0f141b; border:1px solid #2a3441; border-radius:12px; padding:12px; width:100%; color:white; outline:none;}
+.btn-primary{background: linear-gradient(135deg,#00d2ff,#3a7bd5); border-radius:12px; padding:14px; font-weight:700;}
+.btn-danger{background:#ff3b30; border-radius:12px; padding:14px; font-weight:700;}
+.dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
+</style>
+</head>
+<body class="pb-24">
+<!-- Header -->
+<div class="sticky top-0 z-50 bg-[#0a0e13]/90 backdrop-blur p-4 flex justify-between items-center border-b border-[#232a35]">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-bold">E</div>
+    <div>
+      <div class="font-bold leading-none">Expiry Hero</div>
+      <div class="text-[11px] text-gray-400 flex items-center gap-1"><span id="statusDot" class="dot bg-red-500"></span><span id="statusText">Not Connected</span></div>
+    </div>
+  </div>
+  <div class="text-right">
+    <div class="text-xs text-gray-400">P&L</div>
+    <div id="pnlDisplay" class="font-bold text-green-400">₹0.00</div>
+  </div>
+</div>
+
+<div class="p-4 space-y-4 max-w-[480px] mx-auto">
+  <!-- Connect Card -->
+  <div class="card p-4">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="font-bold"><i class="fa-solid fa-plug mr-2 text-cyan-400"></i>Alice Blue ANT</h3>
+      <span id="connectBadge" class="text-[10px] px-2 py-1 rounded-full bg-red-500/20 text-red-400">DISCONNECTED</span>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <input id="clientId" class="input text-sm" placeholder="Client ID">
+      <input id="userId" class="input text-sm" placeholder="User ID">
+    </div>
+    <input id="appKey" class="input text-sm mt-3" placeholder="App Key (API Key)">
+    <input id="secretKey" class="input text-sm mt-3" type="password" placeholder="Secret Key">
+    <button onclick="connectANT()" id="connectBtn" class="btn-primary w-full mt-4"><i class="fa-solid fa-link mr-2"></i>Connect ANT</button>
+  </div>
+
+  <!-- Strategy Card -->
+  <div class="card p-4">
+    <h3 class="font-bold mb-3"><i class="fa-solid fa-chess-knight mr-2 text-yellow-400"></i>Expiry Strategy</h3>
+    <div class="grid grid-cols-2 gap-3">
+      <select id="indexSelect" class="input text-sm">
+        <option>NIFTY</option><option>BANKNIFTY</option><option>FINNIFTY</option><option>SENSEX</option>
+      </select>
+      <select id="strategySelect" class="input text-sm">
+        <option>9:20 Straddle</option><option>9:20 Strangle</option><option>9:45 Momentum</option><option>Expiry Hero Pro</option>
+      </select>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mt-3">
+      <div><label class="text-[10px] text-gray-400">LOTS</label><input id="lots" type="number" value="1" class="input text-center font-bold"></div>
+      <div><label class="text-[10px] text-gray-400">SL %</label><input id="sl" type="number" value="30" class="input text-center font-bold"></div>
+      <div><label class="text-[10px] text-gray-400">TARGET %</label><input id="target" type="number" value="60" class="input text-center font-bold"></div>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mt-4">
+      <button onclick="startBot()" id="startBtn" class="btn-primary"><i class="fa-solid fa-play mr-2"></i>Start Bot</button>
+      <button onclick="squareOff()" class="btn-danger"><i class="fa-solid fa-stop mr-2"></i>Square Off</button>
+    </div>
+  </div>
+
+  <!-- Trades -->
+  <div class="card p-4">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="font-bold"><i class="fa-solid fa-list mr-2 text-green-400"></i>Live Trades</h3>
+      <span id="tradeCount" class="text-xs bg-[#232a35] px-2 py-1 rounded-full">0</span>
+    </div>
+    <div id="tradesList" class="space-y-2 max-h-[300px] overflow-y-auto">
+      <div class="text-center text-gray-500 text-sm py-8">No trades yet<br><span class="text-xs">Start bot to see live orders</span></div>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="card p-3 bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border-blue-500/20">
+    <div class="text-xs text-blue-300"><i class="fa-solid fa-circle-info mr-1"></i> <b>Mobile App Mode:</b> This backend also serves mobile UI. For Live Orders set <code>ALLOW_LIVE=true</code> in Render Env Vars and add real pya3 integration in app.py connect function.</div>
+  </div>
+</div>
+
+<script>
+let connected = false;
+async function connectANT(){
+  const btn = document.getElementById('connectBtn');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Connecting...';
+  try{
+    const res = await fetch('/api/connect',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        client_id: document.getElementById('clientId').value,
+        user_id: document.getElementById('userId').value,
+        app_key: document.getElementById('appKey').value,
+        secret_key: document.getElementById('secretKey').value
+      })
+    });
+    const data = await res.json();
+    if(data.status==='CONNECTED'){
+      connected=true;
+      document.getElementById('statusDot').className='dot bg-green-500';
+      document.getElementById('statusText').innerText='ANT Connected';
+      document.getElementById('statusText').className='text-green-400';
+      document.getElementById('connectBadge').innerText='CONNECTED';
+      document.getElementById('connectBadge').className='text-[10px] px-2 py-1 rounded-full bg-green-500/20 text-green-400';
+      btn.innerHTML='<i class="fa-solid fa-check mr-2"></i>Connected ✓';
+      btn.classList.add('opacity-60');
+      alert('✓ Alice Blue ANT Connected\nSession: '+data.session_id);
+    }
+  }catch(e){ alert('Connect Failed: '+e); btn.innerHTML='<i class="fa-solid fa-link mr-2"></i>Connect ANT'; }
+}
+
+async function startBot(){
+  if(!connected){ alert('First Connect Alice Blue ANT'); return; }
+  const btn = document.getElementById('startBtn');
+  btn.innerHTML='<i class="fa-solid fa-spinner fa-spin mr-2"></i>Starting...';
+  const res = await fetch('/api/start',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      index: document.getElementById('indexSelect').value,
+      strategy: document.getElementById('strategySelect').value,
+      lots: parseInt(document.getElementById('lots').value),
+      sl: document.getElementById('sl').value,
+      target: document.getElementById('target').value
+    })
+  });
+  const data = await res.json();
+  btn.innerHTML='<i class="fa-solid fa-pause mr-2"></i>Running...';
+  loadStatus();
+}
+
+async function squareOff(){
+  if(!confirm('Square Off All Positions?')) return;
+  const res = await fetch('/api/square_off',{method:'POST'});
+  const data = await res.json();
+  document.getElementById('pnlDisplay').innerText='₹'+data.total_pnl;
+  loadStatus();
+}
+
+async function loadStatus(){
+  const res = await fetch('/api/status');
+  const s = await res.json();
+  document.getElementById('pnlDisplay').innerText='₹'+(s.pnl||0).toFixed(2);
+  document.getElementById('tradeCount').innerText=s.trades.length;
+  const list = document.getElementById('tradesList');
+  if(s.trades.length===0) return;
+  list.innerHTML = s.trades.slice().reverse().map(t=>`
+    <div class="flex justify-between items-center bg-[#0f141b] p-3 rounded-xl border border-[#232a35]">
+      <div><div class="text-xs font-bold">${t.symbol}</div><div class="text-[10px] text-gray-400">${t.time} • ${t.type}</div></div>
+      <div class="text-right"><div class="text-sm font-bold">${t.qty} Qty</div><div class="text-xs ${t.pnl>=0?'text-green-400':'text-red-400'}">${t.pnl? '₹'+t.pnl : '₹'+t.price}</div></div>
+    </div>`).join('');
+}
+setInterval(loadStatus, 3000);
+</script>
+</body>
+</html>
