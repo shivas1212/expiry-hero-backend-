@@ -1,2 +1,5 @@
 fastapi
 uvicorn
+pya3
+requests
+websockets
